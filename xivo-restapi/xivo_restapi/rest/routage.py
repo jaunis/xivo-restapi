@@ -153,6 +153,16 @@ users_service.add_url_rule("/<userid>",
                   getattr(APIUsers(), "edit"),
                   methods=["PUT"])
 
+users_service.add_url_rule("/<userid>/enablednd",
+                  "enablednd",
+                  getattr(APIUsers(), "enablednd"),
+                  methods=["POST"])
+
+users_service.add_url_rule("/<userid>/disablednd",
+                  "disablednd",
+                  getattr(APIUsers(), "disablednd"),
+                  methods=["POST"])
+
 # ********************* #
 #   Voicemails server   #
 # ********************* #

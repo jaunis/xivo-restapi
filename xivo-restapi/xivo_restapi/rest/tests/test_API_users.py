@@ -227,3 +227,25 @@ class TestAPIUsers(unittest.TestCase):
                               data=rest_encoder.encode(data))
         self.assertEqual(status, result.status)
         self.instance_user_management.edit_user.side_effect = None
+
+    def test_enable_dnd(self):
+
+        self.instance_user_management.enable_dnd.return_value = True
+
+        result = self.app.post(RestAPIConfig.XIVO_REST_SERVICE_ROOT_PATH +
+                              RestAPIConfig.XIVO_USERS_SERVICE_PATH + '/1/enablednd',
+                              '')
+
+        self.instance_user_management.enable_dnd.assert_called_with(1)
+        self.assertEquals(result.status, "200 OK")
+
+    def test_disable_dnd(self):
+
+        self.instance_user_management.disable_dnd.return_value = True
+
+        result = self.app.post(RestAPIConfig.XIVO_REST_SERVICE_ROOT_PATH +
+                              RestAPIConfig.XIVO_USERS_SERVICE_PATH + '/1/disablednd',
+                              '')
+
+        self.instance_user_management.disable_dnd.assert_called_with(1)
+        self.assertEquals(result.status, "200 OK")

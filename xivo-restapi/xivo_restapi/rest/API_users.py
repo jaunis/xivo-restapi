@@ -109,3 +109,15 @@ class APIUsers:
         except Exception as e:
             data = rest_encoder.encode([str(e)])
             return make_response(data, 500)
+
+    @consumes('application/json')
+    @realmDigest.requires_auth
+    def enablednd(self, userid):
+        self._user_management.enable_dnd(int(userid))
+        return make_response({}, 200)
+
+    @consumes('application/json')
+    @realmDigest.requires_auth
+    def disablednd(self, userid):
+        self._user_management.disable_dnd(int(userid))
+        return make_response({}, 200)

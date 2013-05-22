@@ -92,3 +92,9 @@ class RestUsers():
 
     def delete_user_from_db(self, userid):
         user_dao.delete(userid)
+
+    def enablednd(self, userid):
+        return self.ws_utils.rest_post(RestAPIConfig.XIVO_USERS_SERVICE_PATH + "/%d/enablednd" % userid, {})
+
+    def disablednd(self, userid):
+        return self.ws_utils.rest_post(RestAPIConfig.XIVO_USERS_SERVICE_PATH + "/%d/disablednd" % userid, {})

@@ -77,3 +77,11 @@ class UserManagement:
         if voicemailid is not None:
             fullname = user_dao.get(userid).fullname
             self.voicemail_manager.edit_voicemail(voicemailid, {'fullname': fullname})
+
+    def enable_dnd(self, userid):
+        data_access_logger.info("Enable DND for user %s" % userid)
+        user_dao.enable_dnd(userid)
+
+    def disable_dnd(self, userid):
+        data_access_logger.info("Disable DND for user %s" % userid)
+        user_dao.disable_dnd(userid)

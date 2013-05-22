@@ -28,6 +28,7 @@ from xivo_restapi.services.utils.exceptions import NoSuchElementException
 from xivo_restapi.services.voicemail_management import VoicemailManagement
 import copy
 import unittest
+from xivo_restapi.services import user_management
 
 
 class TestUserManagement(unittest.TestCase):
@@ -164,3 +165,27 @@ class TestUserManagement(unittest.TestCase):
         user_dao.update.return_value = 0
         self.assertRaises(NoSuchElementException, self._userManager.edit_user,
                           1, data)
+
+    def test_enable_dnd(self):
+        user_id = 123
+
+        user_management.data_access_logger = Mock()
+
+        user_dao.enable_dnd = Mock()
+
+        self._userManager.enable_dnd(user_id)
+
+        user_dao.enable_dnd.assert_called_once_with(user_id)  # @UndefinedVariable
+        assert user_management.data_access_logger.info.call_count == 1, "should log modification access"  # @UndefinedVariable
+
+    def test_disable_dnd(self):
+        user_id = 778
+
+        user_management.data_access_logger = Mock()
+
+        user_dao.disable_dnd = Mock()
+
+        self._userManager.disable_dnd(user_id)
+
+        user_dao.disable_dnd.assert_called_once_with(user_id)  # @UndefinedVariable
+        assert user_management.data_access_logger.info.call_count == 1, "should log modification access"  # @UndefinedVariable

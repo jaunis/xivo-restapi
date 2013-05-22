@@ -222,4 +222,3 @@ def then_i_have_a_single_user_group1_with_a_line_group2(step, fullname, linenumb
     assert result['lastname'] == lastname
     assert 'line' in result
     assert result['line']['number'] == linenumber
-
