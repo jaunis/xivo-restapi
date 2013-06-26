@@ -21,7 +21,7 @@ import unittest
 from mock import Mock, patch
 from xivo_dao.alchemy.userfeatures import UserFeatures
 from xivo_dao.service_data_model.sdm_exception import \
-    IncorrectParametersException
+    IncorrectParametersException, MissingParametersException
 from xivo_dao.service_data_model.user_sdm import UserSdm
 from xivo_restapi.rest import rest_encoder
 from xivo_restapi.rest.helpers import global_helper
@@ -127,6 +127,32 @@ class TestAPIUsers(unittest.TestCase):
         self.assertEqual(result.status, status)
         global_helper.create_class_instance.assert_called_with(self.mock_user_sdm, data)
         self.instance_user_management.create_user.assert_called_with(self.user_sdm)
+
+    def test_create_no_parameters(self):
+        status = "400 BAD REQUEST"
+        expected_data = "Missing parameters sent: firstname"
+        data = {}
+        self.user_sdm.validate.side_effect = MissingParametersException("firstname")
+
+        result = self.app.post("%s/" % BASE_URL, data=rest_encoder.encode(data))
+
+        self.assertEqual(status, result.status)
+        received_data = rest_encoder.decode(result.data)
+        self.assertEquals(expected_data, received_data[0])
+        self.user_sdm.validate.side_effect = None
+
+    def test_create_empty_firstname(self):
+        status = "400 BAD REQUEST"
+        expected_data = "Missing parameters sent: firstname"
+        data = {'firstname': ''}
+        self.user_sdm.validate.side_effect = MissingParametersException("firstname")
+
+        result = self.app.post("%s/" % BASE_URL, data=rest_encoder.encode(data))
+
+        self.assertEqual(status, result.status)
+        received_data = rest_encoder.decode(result.data)
+        self.assertEquals(expected_data, received_data[0])
+        self.user_sdm.validate.side_effect = None
 
     def test_create_error(self):
         status = "500 INTERNAL SERVER ERROR"

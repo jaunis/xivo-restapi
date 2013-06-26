@@ -18,7 +18,7 @@
 from flask.globals import request
 from flask.helpers import make_response
 from xivo_dao.service_data_model.sdm_exception import \
-    IncorrectParametersException
+    IncorrectParametersException, MissingParametersException
 from xivo_dao.service_data_model.user_sdm import UserSdm
 from xivo_restapi.rest import rest_encoder
 from xivo_restapi.rest.authentication.xivo_realm_digest import realmDigest
@@ -70,6 +70,9 @@ class APIUsers(object):
             self._user_management.create_user(user)
             return make_response('', 201)
         except IncorrectParametersException as e:
+            data = rest_encoder.encode([str(e)])
+            return make_response(data, 400)
+        except MissingParametersException as e:
             data = rest_encoder.encode([str(e)])
             return make_response(data, 400)
 

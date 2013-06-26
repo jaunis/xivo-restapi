@@ -72,6 +72,11 @@ def then_i_get_a_single_user_group1(step, fullname):
     assert world.result['lastname'] == lastname
 
 
+@step(u'When I create an empty user')
+def when_i_create_an_empty_user(step):
+    world.result = rest_users.create_empty_user()
+
+
 @step(u'When I create a user "([^"]*)" with description "([^"]*)" and with ctiprofileid "([^"]*)"')
 def when_i_create_a_user_group1_with_description_group2(step, fullname, description, ctiprofileid):
     world.result = rest_users.create_user(fullname, description, int(ctiprofileid))

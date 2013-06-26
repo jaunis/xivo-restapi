@@ -51,6 +51,10 @@ class RestUsers():
         [firstname, lastname] = fullname.split(" ")
         return (firstname, lastname)
 
+    def create_empty_user(self):
+        data = {}
+        return self.ws_utils.rest_post(RestAPIConfig.XIVO_USERS_SERVICE_PATH + "/", data)
+
     def create_user(self, fullname, description, ctiprofileid=None):
         (firstname, lastname) = self.decompose_fullname(fullname)
         data = {'firstname': firstname,

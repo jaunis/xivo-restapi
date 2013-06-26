@@ -15,6 +15,10 @@ Feature: Users management
         When I ask for a user with a non existing id
         Then I get a response with status "404"
 
+    Scenario: Creating an empty user
+        When I create an empty user
+        Then I get an error message "Missing parameters sent: firstname"
+
     Scenario: Creating a user
         When I create a user "Irène Dupont" with description "accented description: éà@';" and with ctiprofileid "1"
         Then I get a response with status "201"
