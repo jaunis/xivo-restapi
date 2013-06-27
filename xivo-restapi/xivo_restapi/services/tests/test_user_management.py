@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-from mock import Mock, call
+from mock import Mock, call, patch
 from provd.rest.client.client import DeviceManager, ConfigManager
 from urllib2 import URLError
 from xivo_dao import user_dao, line_dao, device_dao, voicemail_dao
@@ -122,14 +122,26 @@ class TestUserManagement(unittest.TestCase):
         self.assertRaises(NoSuchElementException, self._userManager.get_user, 1)
         user_dao.get_user_join_line.assert_called_with(1)
 
-    def test_create_user(self):
+    @patch('xivo_dao.dialaction_dao.add_dialaction_for_user')
+    def test_create_user(self, add_dialaction_for_user):
+        user_id = 1
         user_sdm = UserSdm()
+        user_sdm.id = user_id
+        user_sdm.description = ''
         user1 = UserFeatures()
         user1.firstname = 'test1'
+        user1.id = user_id
         self.user_mapping.sdm_to_alchemy.return_value = user1
         user_dao.add_user = Mock()
         self._userManager.create_user(user_sdm)
         user_dao.add_user.assert_called_with(user1)
+
+        self.assertEquals(add_dialaction_for_user.call_count, 4)
+        add_dialaction_for_user.assert_any_call(user_id, 'noanswer')
+        add_dialaction_for_user.assert_any_call(user_id, 'busy')
+        add_dialaction_for_user.assert_any_call(user_id, 'congestion')
+        add_dialaction_for_user.assert_any_call(user_id, 'chanunavail')
+
         self.user_mapping.sdm_to_alchemy.assert_called_with(user_sdm)
 
     def test_edit_user_without_voicemail(self):

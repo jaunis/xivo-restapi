@@ -17,7 +17,7 @@
 
 from provd.rest.client.client import new_provisioning_client
 from urllib2 import URLError
-from xivo_dao import user_dao, line_dao, device_dao, voicemail_dao
+from xivo_dao import user_dao, line_dao, device_dao, voicemail_dao, dialaction_dao
 from xivo_dao.mapping_alchemy_sdm.line_mapping import LineMapping
 from xivo_dao.mapping_alchemy_sdm.user_mapping import UserMapping
 from xivo_restapi.restapi_config import RestAPIConfig
@@ -28,6 +28,8 @@ from xivo_restapi.services.voicemail_management import VoicemailManagement
 import logging
 
 data_access_logger = logging.getLogger(RestAPIConfig.DATA_ACCESS_LOGGERNAME)
+
+logger = logging.getLogger(__name__)
 
 
 class UserManagement(object):
@@ -67,10 +69,12 @@ class UserManagement(object):
 
     def create_user(self, user):
         data_access_logger.info("Creating a user with the data %s." % user.todict())
-        if user.description is None:
+        if not getattr(user, 'description', None):
             user.description = ''
         user_interne = self.user_mapping.sdm_to_alchemy(user)
+        self._update_callerid(user_interne)
         user_dao.add_user(user_interne)
+        self._add_dialactions(user_interne.id)
 
     def edit_user(self, userid, data):
         data_access_logger.info("Editing the user of id %s with data %s."
@@ -141,3 +145,14 @@ class UserManagement(object):
             self.sysconfd_connector.delete_voicemail_storage(context, mailbox)
         except Exception as e:
             raise SysconfdError(str(e))
+
+    def _update_callerid(self, user):
+        fullname = user.firstname
+        if user.lastname:
+            fullname += " %s" % user.lastname
+
+        user.callerid = '"%s"' % fullname
+
+    def _add_dialactions(self, user_id):
+        for event in ['noanswer', 'busy', 'congestion', 'chanunavail']:
+            dialaction_dao.add_dialaction_for_user(user_id, event)
