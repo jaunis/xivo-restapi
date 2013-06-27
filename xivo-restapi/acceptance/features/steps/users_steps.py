@@ -33,6 +33,17 @@ from xivo_dao.alchemy.userfeatures import UserFeatures
 rest_users = RestUsers()
 
 
+@step(u'Given there are no users with firstname "([^"]*)"')
+def given_there_are_no_users_with_firstname_group1(step, firstname):
+    for user in _all_users_with_firstname(firstname):
+        rest_users.delete_user(user['id'])
+
+
+def _all_users_with_firstname(firstname):
+    users = rest_users.get_all_users().data['items']
+    return [u for u in users if u['firstname'] == firstname]
+
+
 @step('Given there is a user "([^"]*)"$')
 def given_there_is_a_user(step, fullname):
     world.userid = rest_users.id_from_fullname(fullname)
@@ -46,6 +57,11 @@ def given_there_is_a_user(step, fullname):
         world.userid = user.id
 
 
+@step(u'When I create a user with firstname "([^"]*)"')
+def when_i_create_a_user_with_firstname_group1(step, firstname):
+    world.result = rest_users.create_user_with_params({'firstname': firstname})
+
+
 @step(u'When I ask for all the users')
 def when_i_ask_for_all_the_users(step):
     world.result = rest_users.get_all_users().data['items']
@@ -57,6 +73,95 @@ def then_i_get_a_list_with_group1_and_group2(step, fullname1, fullname2):
     processed_result = [[item['firstname'], item['lastname']] for item in world.result]
     assert fullname1.split(" ") in processed_result
     assert fullname2.split(" ") in processed_result
+
+
+@step(u'Then the user with firstname "([^"]*)" has all the default values')
+def then_the_user_with_firstname_group1_has_all_the_default_values(step, firstname):
+    defaults = {
+        'entityid': 1,
+        'ringseconds': 30,
+        'simultcalls': 5,
+        'enableclient': 0,
+        'enablehint': 1,
+        'enablevoicemail': 0,
+        'enablexfer': 1,
+        'enableautomon': 0,
+        'callrecord': 0,
+        'incallfilter': 0,
+        'enablednd': 0,
+        'enableunc': 0,
+        'enablerna': 0,
+        'enablebusy': 0,
+        'musiconhold': 'default',
+        'outcallerid': 'default',
+        'bsfilter': 'no',
+        'commented': 0,
+    }
+
+    user_id = _all_users_with_firstname(firstname)[0]['id']
+    user = user_dao.get(user_id)
+
+    _check_null_fields(user)
+    _check_empty_fields(user)
+
+    for field, default_value in defaults.iteritems():
+        value = getattr(user, field)
+        assert value == default_value, "%s invalid (%s != %s)" % (field, value, default_value)
+
+    callerid = '"%s"' % firstname
+    assert user.callerid == callerid, "callerid invalid (%s != %s)" % (callerid, user.callerid)
+
+
+def _check_null_fields(user):
+
+    null_fields = [
+        'language',
+        'voicemailtype',
+        'voicemailid',
+        'agentid',
+        'pictureid',
+        'cti_profile_id',
+        'preprocess_subroutine',
+    ]
+
+    for field in null_fields:
+        value = getattr(user, field)
+        assert value is None, "field %s is not null (value: %s)" % (field, repr(value))
+
+
+def _check_empty_fields(user):
+    empty_fields = [
+        'timezone',
+        'ringintern',
+        'ringextern',
+        'ringgroup',
+        'ringforward',
+        'rightcallcode',
+    ]
+
+    for field in empty_fields:
+        value = getattr(user, field)
+        assert value == '', "field %s is not empty (value: %s)" % (field, repr(value))
+
+
+@step(u'Then the user with firstname "([^"]*)" has basic dial actions')
+def then_the_user_with_firstname_group1_has_basic_dial_actions(step, firstname):
+    user = _all_users_with_firstname(firstname)[0]
+    dialactions = dialaction_dao.get_by_userid(user['id'])
+
+    for dialaction in dialactions:
+        assert dialaction.category == 'user', "dialaction category invalid (%s != user)" % dialaction.category
+        assert dialaction.categoryval == str(user['id']), "dialaction categoryval invalid (%s != %s)" % (dialaction.categoryval, user['id'])
+        assert dialaction.action == 'none', "dialaction action invalid (%s != none)" % dialaction.action
+        assert dialaction.actionarg1 is None, "dialaction actionarg1 invalid (%s != null" % dialaction.actionarg1
+        assert dialaction.actionarg2 is None, "dialaction actionarg2 invalid (%s != null" % dialaction.actionarg2
+        assert dialaction.linked == 1, "dialaction actionarg2 invalid (%s != 1" % dialaction.linked
+
+    dialaction_events = [d.event for d in dialactions]
+    assert 'noanswer' in dialaction_events, "no dialaction with event 'noanswer' found"
+    assert 'busy' in dialaction_events, "no dialaction with event 'busy' found"
+    assert 'congestion' in dialaction_events, "no dialaction with event 'congestion' found"
+    assert 'chanunavail' in dialaction_events, "no dialaction with event 'chanunavail' found"
 
 
 @step(u'When I ask for the user "([^"]*)" using its id')

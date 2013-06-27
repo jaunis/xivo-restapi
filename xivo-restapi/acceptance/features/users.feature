@@ -19,7 +19,14 @@ Feature: Users management
         When I create an empty user
         Then I get an error message "Missing parameters sent: firstname"
 
-    Scenario: Creating a user
+    Scenario: Creating a user with a first name
+        Given there are no users with firstname "Jean-Yves"
+        When I create a user with firstname "Jean-Yves"
+        Then I get a response with status "201"
+        Then the user with firstname "Jean-Yves" has all the default values
+        Then the user with firstname "Jean-Yves" has basic dial actions
+
+    Scenario: Creating a user with a description and CTI profile
         When I create a user "Irène Dupont" with description "accented description: éà@';" and with ctiprofileid "1"
         Then I get a response with status "201"
         Then the user "Irène Dupont" is actually created with ctiprofileid "1" and description "accented description: éà@';"

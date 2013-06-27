@@ -52,8 +52,7 @@ class RestUsers():
         return (firstname, lastname)
 
     def create_empty_user(self):
-        data = {}
-        return self.ws_utils.rest_post(RestAPIConfig.XIVO_USERS_SERVICE_PATH + "/", data)
+        return self.create_user_with_params({})
 
     def create_user(self, fullname, description, ctiprofileid=None):
         (firstname, lastname) = self.decompose_fullname(fullname)
@@ -61,7 +60,10 @@ class RestUsers():
                 'lastname': lastname,
                 'description': description,
                 'ctiprofileid': ctiprofileid}
-        return self.ws_utils.rest_post(RestAPIConfig.XIVO_USERS_SERVICE_PATH + "/", data)
+        return self.create_user_with_params(data)
+
+    def create_user_with_params(self, params):
+        return self.ws_utils.rest_post(RestAPIConfig.XIVO_USERS_SERVICE_PATH + "/", params)
 
     def update_user(self, userid, firstname=None, lastname=None):
         data = {}
