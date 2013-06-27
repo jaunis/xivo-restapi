@@ -73,13 +73,17 @@ def exception_catcher(func):
     def decorated_func(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except ValueError:
+        except ValueError as e:
+            logger.error("error during request", exc_info=True)
             data = rest_encoder.encode(["No parsable data in the request"])
             return make_response(data, 400)
         except NoSuchElementException:
+            logger.error("error during request", exc_info=True)
             return make_response('', 404)
         except HTTPException:
+            logger.error("error during request", exc_info=True)
             raise
         except Exception as e:
+            logger.error("error during request", exc_info=True)
             return make_response(rest_encoder.encode([str(e)]), 500)
     return decorated_func
