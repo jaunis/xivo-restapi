@@ -18,7 +18,7 @@
 
 import unittest
 
-from mock import Mock, patch
+from mock import Mock, patch, ANY
 from xivo_dao.alchemy.userfeatures import UserFeatures
 from xivo_dao.service_data_model.sdm_exception import \
     IncorrectParametersException, MissingParametersException
@@ -113,7 +113,8 @@ class TestAPIUsers(unittest.TestCase):
         self.assertEqual(result.status, status)
         self.instance_user_management.get_user.side_effect = None
 
-    def test_create(self):
+    @patch('xivo_dao.sdm_validator.user_validator.validate_user')
+    def test_create(self, validate_user):
         status = "201 CREATED"
         data = {u'firstname': u'André',
                 u'lastname': u'Dupond',
@@ -124,8 +125,8 @@ class TestAPIUsers(unittest.TestCase):
 
         result = self.app.post("%s/" % BASE_URL, data=rest_encoder.encode(data))
 
-        self.assertEqual(result.status, status)
-        global_helper.create_class_instance.assert_called_with(self.mock_user_sdm, data)
+        validate_user.assert_called_once_with(self.user_sdm)
+        self.assertEqual(result.status, status, result.data)
         self.instance_user_management.create_user.assert_called_with(self.user_sdm)
 
     def test_create_no_parameters(self):
@@ -154,7 +155,8 @@ class TestAPIUsers(unittest.TestCase):
         self.assertEquals(expected_data, received_data[0])
         self.user_sdm.validate.side_effect = None
 
-    def test_create_error(self):
+    @patch('xivo_dao.sdm_validator.user_validator.validate_user')
+    def test_create_error(self, validate_user):
         status = "500 INTERNAL SERVER ERROR"
         data = {'firstname': 'André',
                 'lastname': 'Dupond',
@@ -164,6 +166,7 @@ class TestAPIUsers(unittest.TestCase):
 
         result = self.app.post("%s/" % BASE_URL, data=rest_encoder.encode(data))
 
+        validate_user.assert_called_once_with(ANY)
         self.assertEqual(status, result.status)
         self.instance_user_management.create_user.side_effect = None
 
@@ -182,22 +185,24 @@ class TestAPIUsers(unittest.TestCase):
         self.assertEquals(expected_data, received_data[0])
         self.user_sdm.validate.side_effect = None
 
-    def test_edit(self):
+    @patch('xivo_dao.sdm_validator.user_validator.validate_params')
+    def test_edit(self, validate_params):
         status = "200 OK"
         data = {u'id': 2,
                 u'firstname': u'André',
                 u'lastname': u'Dupond',
                 u'description': u'éà":;'}
         self.instance_user_management.edit_user.return_value = True
-        self.user_sdm.validate.return_value = True
 
         result = self.app.put("%s/1" % BASE_URL, data=rest_encoder.encode(data))
 
         self.assertEqual(result.status, status)
-        self.user_sdm.validate.assert_called_with(data)
+
+        validate_params.assert_called_with(data)
         self.instance_user_management.edit_user.assert_called_with(1, data)
 
-    def test_edit_error(self):
+    @patch('xivo_dao.sdm_validator.user_validator.validate_params')
+    def test_edit_error(self, validate_params):
         status = "500 INTERNAL SERVER ERROR"
         data = {u'firstname': u'André',
                 u'lastname': u'Dupond',
@@ -206,24 +211,25 @@ class TestAPIUsers(unittest.TestCase):
 
         result = self.app.put("%s/1" % BASE_URL, data=rest_encoder.encode(data))
 
-        self.user_sdm.validate.assert_called_with(data)
+        validate_params.assert_called_with(data)
         self.assertEqual(status, result.status)
         self.instance_user_management.edit_user.side_effect = None
 
-    def test_edit_request_error(self):
+    @patch('xivo_dao.sdm_validator.user_validator.validate_params')
+    def test_edit_request_error(self, validate_params):
         status = "400 BAD REQUEST"
         expected_data = "Incorrect parameters sent: unexisting_field"
         data = {u'firstname': u'André',
                 u'lastname': u'Dupond',
                 u'unexisting_field': u'value'}
-        self.user_sdm.validate.side_effect = IncorrectParametersException("unexisting_field")
+        validate_params.side_effect = IncorrectParametersException("unexisting_field")
 
         result = self.app.put("%s/1" % BASE_URL, data=rest_encoder.encode(data))
 
         self.assertEquals(result.status, status)
         received_data = rest_encoder.decode(result.data)
         self.assertEquals(received_data[0], expected_data)
-        self.user_sdm.validate.assert_called_with(data)
+        validate_params.assert_called_with(data)
         self.instance_user_management.edit_user.side_effect = None
 
     def test_edit_not_found(self):

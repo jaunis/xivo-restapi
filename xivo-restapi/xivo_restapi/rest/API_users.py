@@ -20,9 +20,9 @@ from flask.helpers import make_response
 from xivo_dao.service_data_model.sdm_exception import \
     IncorrectParametersException, MissingParametersException
 from xivo_dao.service_data_model.user_sdm import UserSdm
+from xivo_dao.sdm_validator import user_validator
 from xivo_restapi.rest import rest_encoder
 from xivo_restapi.rest.authentication.xivo_realm_digest import realmDigest
-from xivo_restapi.rest.helpers import global_helper
 from xivo_restapi.rest.helpers.global_helper import exception_catcher
 from xivo_restapi.rest.negotiate.flask_negotiate import produces, consumes
 from xivo_restapi.services.user_management import UserManagement
@@ -36,7 +36,6 @@ class APIUsers(object):
 
     def __init__(self):
         self._user_management = UserManagement()
-        self._user_sdm = UserSdm()
 
     def _make_response(self, response, code=200):
         encoded = rest_encoder.encode(response)
@@ -45,6 +44,13 @@ class APIUsers(object):
     def _decode_request(self):
         decoded = request.data.decode("utf-8")
         return rest_encoder.decode(decoded)
+
+    def _params_to_sdm(self, params):
+        user_validator.validate_params(params)
+        user = UserSdm()
+        for key, value in params.iteritems():
+            setattr(user, key, value)
+        return user
 
     @exception_catcher
     @produces('application/json')
@@ -70,8 +76,8 @@ class APIUsers(object):
         params = self._decode_request()
         logger.info("Request for creating a user with params: %s" % params)
         try:
-            self._user_sdm.validate(data)
-            user = global_helper.create_class_instance(UserSdm, data)
+            user = self._params_to_sdm(params)
+            self._validate_create(user)
             self._user_management.create_user(user)
             return self._make_response('', 201)
         except (IncorrectParametersException, MissingParametersException) as e:
@@ -85,8 +91,8 @@ class APIUsers(object):
         logger.info("Request for editing the user of id %s with params %s ."
                     % (userid, params))
         try:
-            self._user_sdm.validate(data)
-            self._user_management.edit_user(int(userid), data)
+            self._validate_edit(params)
+            self._user_management.edit_user(int(userid), params)
             return self._make_response('', 200)
         except IncorrectParametersException as e:
             return self._make_response([str(e)], 400)
@@ -111,3 +117,9 @@ class APIUsers(object):
             code = 500
 
         return self._make_response(msg, code)
+
+    def _validate_create(self, user):
+        user_validator.validate_user(user)
+
+    def _validate_edit(self, parameters):
+        user_validator.validate_params(parameters)
