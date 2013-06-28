@@ -38,76 +38,76 @@ class APIUsers(object):
         self._user_management = UserManagement()
         self._user_sdm = UserSdm()
 
+    def _make_response(self, response, code=200):
+        encoded = rest_encoder.encode(response)
+        return make_response(encoded, code)
+
+    def _decode_request(self):
+        decoded = request.data.decode("utf-8")
+        return rest_encoder.decode(decoded)
+
     @exception_catcher
     @produces('application/json')
     @realmDigest.requires_auth
     def list(self):
         logger.info("List of users requested.")
-        result = self._user_management.get_all_users()
-        result = {"items": result}
-        result = rest_encoder.encode(result)
-        return make_response(result, 200)
+        users = self._user_management.get_all_users()
+        response = {"items": users}
+        return self._make_response(response)
 
     @exception_catcher
     @produces('application/json')
     @realmDigest.requires_auth
     def get(self, userid):
         logger.info("User of id %s requested" % userid)
-        result = self._user_management.get_user(int(userid))
-        result = rest_encoder.encode(result)
-        return make_response(result, 200)
+        user = self._user_management.get_user(int(userid))
+        return self._make_response(user)
 
     @exception_catcher
     @consumes('application/json')
     @realmDigest.requires_auth
     def create(self):
-        data = request.data.decode("utf-8")
-        logger.info("Request for creating a user with data: %s" % data)
-        data = rest_encoder.decode(data)
+        params = self._decode_request()
+        logger.info("Request for creating a user with params: %s" % params)
         try:
             self._user_sdm.validate(data)
             user = global_helper.create_class_instance(UserSdm, data)
             self._user_management.create_user(user)
-            return make_response('', 201)
-        except IncorrectParametersException as e:
-            data = rest_encoder.encode([str(e)])
-            return make_response(data, 400)
-        except MissingParametersException as e:
-            data = rest_encoder.encode([str(e)])
-            return make_response(data, 400)
+            return self._make_response('', 201)
+        except (IncorrectParametersException, MissingParametersException) as e:
+            return self._make_response([str(e)], 400)
 
     @exception_catcher
     @consumes('application/json')
     @realmDigest.requires_auth
     def edit(self, userid):
-        data = request.data.decode("utf-8")
-        logger.info("Request for editing the user of id %s with data %s ."
-                    % (userid, data))
-        data = rest_encoder.decode(data)
+        params = self._decode_request()
+        logger.info("Request for editing the user of id %s with params %s ."
+                    % (userid, params))
         try:
             self._user_sdm.validate(data)
             self._user_management.edit_user(int(userid), data)
-            return make_response('', 200)
+            return self._make_response('', 200)
         except IncorrectParametersException as e:
-            data = rest_encoder.encode([str(e)])
-            return make_response(data, 400)
+            return self._make_response([str(e)], 400)
 
     @exception_catcher
     @realmDigest.requires_auth
     def delete(self, userid):
+        msg = ''
+        code = 200
+
         try:
             delete_voicemail = 'deleteVoicemail' in request.args
             self._user_management.delete_user(int(userid), delete_voicemail)
-            return make_response('', 200)
         except ProvdError as e:
-            result = "The user was deleted but the device could not be reconfigured (%s)" % str(e)
-            result = rest_encoder.encode([result])
-            return make_response(result, 500)
+            msg = ["The user was deleted but the device could not be reconfigured (%s)" % str(e)]
+            code = 500
         except VoicemailExistsException:
-            result = "Cannot remove a user with a voicemail. Delete the voicemail or dissociate it from the user."
-            result = rest_encoder.encode([result])
-            return make_response(result, 412)
+            msg = ["Cannot remove a user with a voicemail. Delete the voicemail or dissociate it from the user."]
+            code = 412
         except SysconfdError as e:
-            result = "The user was deleted but the voicemail content could not be removed  (%s)" % str(e)
-            result = rest_encoder.encode([result])
-            return make_response(result, 500)
+            msg = ["The user was deleted but the voicemail content could not be removed  (%s)" % str(e)]
+            code = 500
+
+        return self._make_response(msg, code)
