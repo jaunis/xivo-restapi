@@ -17,7 +17,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA..
 
 from mock import Mock, patch
-from hamcrest import assert_that, equal_to
+from hamcrest import assert_that, equal_to, has_entries
 
 from xivo_dao.data_handler.extension.model import Extension
 from xivo_restapi.helpers.tests.test_resources import TestResources
@@ -55,6 +55,8 @@ class TestExtensionActions(TestResources):
                 {
                     'id': extension_id_1,
                     'exten': '1324',
+                    'context': 'default',
+                    'commented': False,
                     'links': [{
                         'href': 'http://localhost/1.1/extensions/%d' % extension_id_1,
                         'rel': 'extensions'
@@ -63,6 +65,8 @@ class TestExtensionActions(TestResources):
                 {
                     'id': extension_id_2,
                     'exten': '1325',
+                    'context': 'default',
+                    'commented': False,
                     'links': [{
                         'href': 'http://localhost/1.1/extensions/%d' % extension_id_2,
                         'rel': 'extensions'
@@ -72,9 +76,11 @@ class TestExtensionActions(TestResources):
         }
 
         extension1 = Extension(id=extension_id_1,
-                               exten='1324')
+                               exten='1324',
+                               context='default')
         extension2 = Extension(id=extension_id_2,
-                               exten='1325')
+                               exten='1325',
+                               context='default')
         mock_extension_services_find_all.return_value = [extension1, extension2]
 
         result = self.app.get(BASE_URL)
@@ -95,6 +101,8 @@ class TestExtensionActions(TestResources):
                 {
                     'id': extension_id,
                     'exten': '1324',
+                    'commented': False,
+                    'context': 'default',
                     'links': [{
                         'href': 'http://localhost/1.1/extensions/%d' % extension_id,
                         'rel': 'extensions'
@@ -104,14 +112,15 @@ class TestExtensionActions(TestResources):
         }
 
         extension = Extension(id=extension_id,
-                              exten='1324')
+                              exten='1324',
+                              context='default')
         mock_extension_services_find_by_exten.return_value = [extension]
 
         result = self.app.get("%s?q=%s" % (BASE_URL, search))
 
         mock_extension_services_find_by_exten.assert_called_once_with(search)
         assert_that(result.status_code, equal_to(expected_status_code))
-        assert_that(self._serialize_decode(result.data), equal_to(expected_result))
+        assert_that(self._serialize_decode(result.data), has_entries(expected_result))
 
     @patch('xivo_dao.data_handler.user_line_extension.services.find_all_by_extension_id')
     def test_list_user_links_not_found(self, mock_ule_services_find_all_by_extension_id):
@@ -191,7 +200,9 @@ class TestExtensionActions(TestResources):
         expected_status_code = 200
         expected_result = {
             'id': extension_id,
+            'context': 'default',
             'exten': '1324',
+            'commented': False,
             'links': [{
                 'href': 'http://localhost/1.1/extensions/%d' % extension_id,
                 'rel': 'extensions'
@@ -199,6 +210,7 @@ class TestExtensionActions(TestResources):
         }
 
         extension = Extension(id=extension_id,
+                              context='default',
                               exten='1324')
         mock_extension_services_get.return_value = extension
 
