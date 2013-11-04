@@ -186,3 +186,86 @@ class TestVoicemailsAction(TestResources):
         voicemail_find_all.assert_called_once_with(**request_parameters)
         assert_that(result.status_code, equal_to(expected_status_code))
         assert_that(self._serialize_decode(result.data), equal_to(expected_result))
+
+    @patch('xivo_restapi.resources.voicemails.actions.formatter')
+    @patch('xivo_dao.data_handler.voicemail.services.create')
+    def test_create(self, voicemail_services_create, formatter):
+        voicemail_id = 123456
+        name = 'John Montana'
+        number = '10001'
+        context = 'default'
+
+        expected_status_code = 201
+        expected_result = {
+            'id': voicemail_id,
+            'name': name,
+            'number': number,
+            'context': context,
+            'links': [{
+                'href': 'http://localhost/1.1/voicemails/%d' % voicemail_id,
+                'rel': 'voicemails'
+            }]
+        }
+
+        data = {'name': name,
+                'number': number,
+                'context': context}
+
+        data_serialized = self._serialize_encode(data)
+
+        voicemail = Mock(Voicemail)
+        created_voicemail = Mock(Voicemail)
+        created_voicemail.id = voicemail_id
+        created_voicemail.name = name
+        created_voicemail.number = number
+        created_voicemail.context = context
+
+        voicemail_services_create.return_value = created_voicemail
+        formatter.to_model.return_value = voicemail
+        formatter.to_api.return_value = self._serialize_encode(expected_result)
+
+        result = self.app.post(BASE_URL, data=data_serialized)
+
+        formatter.to_model.assert_called_once_with(data_serialized)
+        voicemail_services_create.assert_called_once_with(voicemail)
+        formatter.to_api.assert_called_once_with(created_voicemail)
+        assert_that(result.status_code, equal_to(expected_status_code))
+        assert_that(self._serialize_decode(result.data), equal_to(expected_result))
+
+    @patch('xivo_restapi.resources.voicemails.actions.formatter')
+    @patch('xivo_dao.data_handler.voicemail.services.get')
+    @patch('xivo_dao.data_handler.voicemail.services.edit')
+    def test_edit(self, vociemail_services_edit, voicemail_services_get, formatter):
+        expected_status_code = 204
+        expected_data = ''
+
+        data = {
+            'name': 'toto',
+            'number': '12345',
+            'context': 'default'
+        }
+        data_serialized = self._serialize_encode(data)
+
+        voicemail = Mock(Voicemail)
+        voicemail_services_get.return_value = voicemail
+
+        result = self.app.put("%s/1" % BASE_URL, data=data_serialized)
+
+        formatter.update_model.assert_called_with(data_serialized, voicemail)
+        assert_that(result.status_code, equal_to(expected_status_code))
+        assert_that(result.data, equal_to(expected_data))
+
+    @patch('xivo_dao.data_handler.voicemail.services.get')
+    @patch('xivo_dao.data_handler.voicemail.services.delete')
+    def test_delete(self, mock_voicemail_services_delete, mock_voicemail_services_get):
+        expected_status_code = 204
+        expected_data = ''
+
+        voicemail = Mock(Voicemail)
+        mock_voicemail_services_get.return_value = voicemail
+
+        result = self.app.delete("%s/1" % BASE_URL)
+
+        assert_that(result.status_code, equal_to(expected_status_code))
+        assert_that(result.data, equal_to(expected_data))
+        mock_voicemail_services_delete.assert_called_with(voicemail)
