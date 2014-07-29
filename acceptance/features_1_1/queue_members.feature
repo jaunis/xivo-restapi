@@ -31,7 +31,7 @@ Feature: REST API Manipulate queue members
             | queue_name | agent_id |
             | superqueue | 4856     |
         Then I get a response with status "404"
-        Then I get an error message matching "QueueMember with agent_id=4856 queue_id=\d+ does not exist"
+        Then I get an error message "Agent with id=4856 does not exist"
 
     Scenario: Get agent-queue association on non-associated agent
         Given there is a agent "John" "2404" with extension "2404@default"
@@ -39,8 +39,8 @@ Feature: REST API Manipulate queue members
             | name       | display name | number | context |
             | superqueue | SuperQueue   | 3007   | default |
         When I request the following queue member:
-            | queue_name | agent_id |
-            | superqueue | 4856     |
+            | queue_name | agent_number |
+            | superqueue | 2404         |
         Then I get a response with status "404"
         Then I get an error message matching "QueueMember with agent_id=\d+ queue_id=\d+ does not exist"
 
@@ -73,7 +73,7 @@ Feature: REST API Manipulate queue members
             | queue_name | agent_id | penalty |
             | superqueue | 4856     | 7       |
         Then I get a response with status "404"
-        Then I get an error message matching "QueueMember with agent_id=4856 queue_id=\d+ does not exist"
+        Then I get an error message "Agent with id=4856 does not exist"
 
     Scenario: Editing agent-queue association on non-associated agent
         Given there is a agent "John" "2404" with extension "2404@default"
